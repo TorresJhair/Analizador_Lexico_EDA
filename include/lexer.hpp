@@ -13,7 +13,7 @@ struct LexError {
 };
 
 struct LexResult {
-    std::vector<Token>    tokens;  // siempre termina en END_OF_FILEgit reset --soft HEAD~1
+    std::vector<Token>    tokens;  // siempre termina en END_OF_FILE
     std::vector<LexError> errors;  // errores léxicos (NO son tokens)
     bool ok() const { return errors.empty(); }
 };
