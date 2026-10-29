@@ -17,6 +17,8 @@ const std::unordered_map<std::string, TokenType>& keywords() {
 bool isLetter(char c)  { return std::isalpha(static_cast<unsigned char>(c)) || c == '_'; }
 bool isDigit(char c)   { return std::isdigit(static_cast<unsigned char>(c)) != 0; }
 bool isAlnum_(char c)  { return isLetter(c) || isDigit(c); }
+bool isNonAscii(char c) { return static_cast<unsigned char>(c) >= 0x80; }
+bool isWordByte(char c) { return isAlnum_(c) || isNonAscii(c); }
 }  // namespace
 
 Lexer::Lexer(std::string source) : src_(std::move(source)) {}
@@ -51,7 +53,7 @@ LexResult Lexer::tokenize() {
         int line = line_, col = col_;
         char c = peek();
 
-        if (isLetter(c))       scanWord(line, col);
+        if (isLetter(c) || isNonAscii(c)) scanWord(line, col);
         else if (isDigit(c))   scanNumber(line, col);
         else if (c == '\'')    scanString(line, col);
         else if (c == ',')   { advance(); emit(TokenType::COMMA,     ",", line, col); }
@@ -73,7 +75,17 @@ LexResult Lexer::tokenize() {
 
 void Lexer::scanWord(int line, int col) {
     std::string w;
-    while (isAlnum_(peek())) w += advance();
+    bool invalid = false;
+    while (isWordByte(peek())) {
+        if (isNonAscii(peek())) invalid = true;
+        w += advance();
+    }
+
+    if (invalid) {
+        error("identificador contiene caracteres no ASCII", w, line, col);
+        return;
+    }
+
     std::string up;
     for (char ch : w) up += static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
     auto it = keywords().find(up);
@@ -96,8 +108,8 @@ void Lexer::scanNumber(int line, int col) {
             bad = true; why = "numero decimal mal formado (faltan digitos tras el punto)";
         }
     }
-    if (isLetter(peek())) {  // '12abc', '3.5x'
-        while (isAlnum_(peek())) n += advance();
+    if (isLetter(peek()) || isNonAscii(peek())) {  // '12abc', '3.5x', '12niño'
+        while (isWordByte(peek())) n += advance();
         bad = true; why = "numero seguido de letras (identificador mal formado)";
     }
     if (bad) error(why, n, line, col);

@@ -107,6 +107,29 @@ int main() {
               types(result) == expected);
         CHECK("4. lexema conserva escritura original",
               result.tokens[1].lexeme == "Select");
+
+        auto nonAscii = lex("SELECT diñosáurio FROM tabla;");
+        CHECK("4. identificador no ASCII completo genera un error",
+              nonAscii.errors.size() == 1 &&
+              nonAscii.errors[0].lexeme == "diñosáurio" &&
+              nonAscii.errors[0].line == 1 &&
+              nonAscii.errors[0].column == 8);
+        CHECK("4. partes del identificador invalido no generan tokens",
+              types(nonAscii) == std::vector<T>({
+                  T::KEYWORD_SELECT, T::KEYWORD_FROM, T::IDENTIFIER,
+                  T::SEMICOLON, T::END_OF_FILE
+              }) && nonAscii.tokens[2].lexeme == "tabla");
+
+        auto positions = lex("ñandu arbolá válido_2 normal");
+        CHECK("4. caracteres no ASCII en cualquier posicion invalidan la palabra",
+              positions.errors.size() == 3 &&
+              positions.errors[0].lexeme == "ñandu" &&
+              positions.errors[1].lexeme == "arbolá" &&
+              positions.errors[2].lexeme == "válido_2");
+        CHECK("4. identificadores ASCII posteriores se conservan",
+              types(positions) == std::vector<T>({T::IDENTIFIER,
+                                                  T::END_OF_FILE}) &&
+              positions.tokens[0].lexeme == "normal");
     }
 
     {
@@ -138,6 +161,12 @@ int main() {
         auto identifier = lex("12abc");
         CHECK("6. numero seguido de letras es error",
               identifier.errors.size() == 1 && identifier.tokens.size() == 1);
+
+        auto numberAndNonAscii = lex("12niño");
+        CHECK("6. numero seguido de palabra no ASCII es un solo error",
+              numberAndNonAscii.errors.size() == 1 &&
+              numberAndNonAscii.errors[0].lexeme == "12niño" &&
+              numberAndNonAscii.tokens.size() == 1);
 
         auto decimal = lex("12.");
         CHECK("6. decimal sin fraccion es error",
