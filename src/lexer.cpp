@@ -53,9 +53,9 @@ LexResult Lexer::tokenize() {
         int line = line_, col = col_;
         char c = peek();
 
-        if (isLetter(c) || isNonAscii(c)) scanWord(line, col);
-        else if (isDigit(c))   scanNumber(line, col);
-        if (isLetter(c))       scanWord(line, col);
+        // Una sola cadena if / else-if: cada carácter se despacha exactamente una vez.
+        if (isLetter(c) || isNonAscii(c))
+                               scanWord(line, col);
         else if (isDigit(c) || ((c == '+' || c == '-') && isDigit(peek(1))))
                                scanNumber(line, col);
         else if (c == '\'')    scanString(line, col);
@@ -102,6 +102,7 @@ void Lexer::scanNumber(int line, int col) {
     bool decimal = false, exponent = false, bad = false;
     std::string why;
 
+    // Parte fraccionaria
     if (peek() == '.') {
         if (isDigit(peek(1))) {
             decimal = true;
@@ -109,13 +110,12 @@ void Lexer::scanNumber(int line, int col) {
             while (isDigit(peek())) n += advance();
         } else {
             n += advance();  // '12.' sin dígitos fraccionarios
-            bad = true; why = "numero decimal mal formado (faltan digitos tras el punto)";
+            bad = true;
+            why = "numero decimal mal formado (faltan digitos tras el punto)";
         }
     }
-    if (isLetter(peek()) || isNonAscii(peek())) {  // '12abc', '3.5x', '12niño'
-        while (isWordByte(peek())) n += advance();
-        bad = true; why = "numero seguido de letras (identificador mal formado)";
 
+    // Notación científica
     if (peek() == 'e' || peek() == 'E') {
         exponent = true;
         n += advance();
@@ -129,11 +129,13 @@ void Lexer::scanNumber(int line, int col) {
         }
     }
 
-    if (isLetter(peek())) {  // '12abc', '3.5x'
-        while (isAlnum_(peek())) n += advance();
+    // Letras o bytes no ASCII pegados al número: '12abc', '3.5x', '12niño'
+    if (isLetter(peek()) || isNonAscii(peek())) {
+        while (isWordByte(peek())) n += advance();
         bad = true;
         if (why.empty()) why = "numero seguido de letras (identificador mal formado)";
     }
+
     if (bad) error(why, n, line, col);
     else emit(decimal || exponent ? TokenType::DECIMAL_LITERAL : TokenType::INTEGER_LITERAL,
               n, line, col);
