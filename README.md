@@ -45,8 +45,9 @@ posible.
   mayúsculas de minúsculas.
 - Identificadores ASCII formados por letras, dígitos y guion bajo; no pueden
   comenzar con un dígito.
-- Literales enteros, decimales y cadenas entre comillas simples. En una cadena,
-  `''` representa una comilla simple.
+- Literales enteros, decimales y números en notación científica, con signo
+  opcional (`-42`, `+3.14`, `1e5`, `-1e-10`). Las cadenas se escriben entre
+  comillas simples y `''` representa una comilla simple dentro de ellas.
 - Operadores `=`, `<>`, `!=`, `<`, `>`, `<=` y `>=`.
 - Signos `,`, `;`, `*`, `(` y `)`.
 - Posiciones de línea y columna con base 1, además de un token final `EOF`.

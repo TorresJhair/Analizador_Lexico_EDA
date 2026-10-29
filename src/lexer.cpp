@@ -52,7 +52,8 @@ LexResult Lexer::tokenize() {
         char c = peek();
 
         if (isLetter(c))       scanWord(line, col);
-        else if (isDigit(c))   scanNumber(line, col);
+        else if (isDigit(c) || ((c == '+' || c == '-') && isDigit(peek(1))))
+                               scanNumber(line, col);
         else if (c == '\'')    scanString(line, col);
         else if (c == ',')   { advance(); emit(TokenType::COMMA,     ",", line, col); }
         else if (c == ';')   { advance(); emit(TokenType::SEMICOLON, ";", line, col); }
@@ -82,8 +83,9 @@ void Lexer::scanWord(int line, int col) {
 
 void Lexer::scanNumber(int line, int col) {
     std::string n;
+    if (peek() == '+' || peek() == '-') n += advance();
     while (isDigit(peek())) n += advance();
-    bool decimal = false, bad = false;
+    bool decimal = false, exponent = false, bad = false;
     std::string why;
 
     if (peek() == '.') {
@@ -96,12 +98,28 @@ void Lexer::scanNumber(int line, int col) {
             bad = true; why = "numero decimal mal formado (faltan digitos tras el punto)";
         }
     }
+
+    if (peek() == 'e' || peek() == 'E') {
+        exponent = true;
+        n += advance();
+        if (peek() == '+' || peek() == '-') n += advance();
+
+        if (!isDigit(peek())) {
+            bad = true;
+            why = "notacion cientifica mal formada (faltan digitos en el exponente)";
+        } else {
+            while (isDigit(peek())) n += advance();
+        }
+    }
+
     if (isLetter(peek())) {  // '12abc', '3.5x'
         while (isAlnum_(peek())) n += advance();
-        bad = true; why = "numero seguido de letras (identificador mal formado)";
+        bad = true;
+        if (why.empty()) why = "numero seguido de letras (identificador mal formado)";
     }
     if (bad) error(why, n, line, col);
-    else emit(decimal ? TokenType::DECIMAL_LITERAL : TokenType::INTEGER_LITERAL, n, line, col);
+    else emit(decimal || exponent ? TokenType::DECIMAL_LITERAL : TokenType::INTEGER_LITERAL,
+              n, line, col);
 }
 
 void Lexer::scanString(int line, int col) {
