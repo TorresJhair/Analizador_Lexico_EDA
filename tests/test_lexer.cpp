@@ -94,6 +94,30 @@ int main() {
         auto keywords = lex("'SELECT FROM ; >='");
         CHECK("3. palabras reservadas dentro de cadena no se tokenizan",
               keywords.tokens.size() == 2);
+
+        auto signedNumbers = lex("-42 +7 -3.14 +0.5");
+        CHECK("3. enteros con signo",
+              signedNumbers.tokens[0].type == T::INTEGER_LITERAL &&
+              signedNumbers.tokens[0].lexeme == "-42" &&
+              signedNumbers.tokens[1].type == T::INTEGER_LITERAL &&
+              signedNumbers.tokens[1].lexeme == "+7");
+        CHECK("3. decimales con signo",
+              signedNumbers.tokens[2].type == T::DECIMAL_LITERAL &&
+              signedNumbers.tokens[2].lexeme == "-3.14" &&
+              signedNumbers.tokens[3].type == T::DECIMAL_LITERAL &&
+              signedNumbers.tokens[3].lexeme == "+0.5" && signedNumbers.ok());
+
+        auto scientific = lex("1e5 1e-10 2.5E+3 -4E2 +6.02e23");
+        CHECK("3. notacion cientifica",
+              types(scientific) == std::vector<T>({
+                  T::DECIMAL_LITERAL, T::DECIMAL_LITERAL, T::DECIMAL_LITERAL,
+                  T::DECIMAL_LITERAL, T::DECIMAL_LITERAL, T::END_OF_FILE
+              }) && scientific.ok());
+        CHECK("3. notacion cientifica conserva el lexema",
+              scientific.tokens[1].lexeme == "1e-10" &&
+              scientific.tokens[2].lexeme == "2.5E+3" &&
+              scientific.tokens[3].lexeme == "-4E2" &&
+              scientific.tokens[4].lexeme == "+6.02e23");
     }
 
     {
@@ -154,6 +178,20 @@ int main() {
         CHECK("6. varios errores conservan posicion",
               several.errors.size() == 3 && several.errors[2].line == 2 &&
               several.errors[2].column == 1);
+
+        auto exponents = lex("1e 1e+ 1e-");
+        CHECK("6. exponentes incompletos son errores",
+              exponents.errors.size() == 3 && exponents.tokens.size() == 1 &&
+              exponents.errors[0].lexeme == "1e" &&
+              exponents.errors[1].lexeme == "1e+" &&
+              exponents.errors[2].lexeme == "1e-");
+
+        auto signedInvalid = lex("-12abc +3.5x");
+        CHECK("6. numeros signados mal formados son errores completos",
+              signedInvalid.errors.size() == 2 &&
+              signedInvalid.errors[0].lexeme == "-12abc" &&
+              signedInvalid.errors[1].lexeme == "+3.5x" &&
+              signedInvalid.tokens.size() == 1);
     }
 
     {
@@ -194,6 +232,13 @@ int main() {
         auto lines = lex("a\nb");
         CHECK("7. EOF conserva posicion final",
               lines.tokens.back().line == 2 && lines.tokens.back().column == 2);
+
+        auto query = lex("WHERE valor >= -1e-10;");
+        CHECK("7. numero cientifico signado dentro de consulta",
+              types(query) == std::vector<T>({
+                  T::KEYWORD_WHERE, T::IDENTIFIER, T::GREATER_EQUAL,
+                  T::DECIMAL_LITERAL, T::SEMICOLON, T::END_OF_FILE
+              }) && query.tokens[3].lexeme == "-1e-10" && query.ok());
     }
 
     std::cout << "\nResumen: " << passed << " OK, " << failed << " FAIL\n";
