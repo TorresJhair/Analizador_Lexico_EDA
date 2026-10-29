@@ -10,6 +10,40 @@ sentencias SQL `SELECT`.
 - `tests/`: pruebas unitarias del lexer y del modelo de tokens.
 - `examples/`: entradas SQL válidas y con errores.
 
+## Arquitectura
+
+El analizador es un módulo independiente del motor de base de datos: la clase
+`Lexer` solo recibe un `std::string` y devuelve un `LexResult`, sin depender de
+archivos ni de la consola.
+
+```
+Analizador_Lexico_EDA/
+├── include/
+│   ├── token.hpp        # Modelo de tokens (TokenType, Token)
+│   └── lexer.hpp        # Interfaz del analizador (Lexer, LexResult, LexError)
+├── src/
+│   ├── token.cpp        # Nombres legibles de los tokens
+│   ├── lexer.cpp        # Reconocedor léxico y tabla de palabras reservadas
+│   └── main.cpp         # Lectura de archivo/stdin y salida por consola
+├── tests/
+│   ├── test_lexer.cpp   # Pruebas del reconocedor léxico
+│   └── test_token.cpp   # Pruebas del modelo de tokens
+├── examples/            # valida.sql, errores.sql
+├── Makefile
+└── README.md
+```
+
+| Componente | Dónde |
+|---|---|
+| Lectura de entrada | `main.cpp` |
+| Modelo de tokens | `Token`, `TokenType` en `token.hpp` |
+| Reconocedor léxico | `Lexer::tokenize()` y métodos `scan*` en `lexer.cpp` |
+| Palabras reservadas | `keywords()` en `lexer.cpp` |
+| Manejo de errores | `LexError` y `LexResult::errors` |
+| Interfaz de salida | `LexResult` (hacia el parser) y tabla impresa por `main.cpp` |
+
+Flujo: `entrada → main.cpp → Lexer::tokenize() → LexResult { tokens, errors }`.
+
 ## Compilación y pruebas
 
 Se requiere `g++` con soporte para C++17 y `make`.
