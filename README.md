@@ -44,6 +44,11 @@ posible.
 - Palabras reservadas: `SELECT`, `FROM`, `WHERE`, `AND` y `OR`, sin distinguir
   mayúsculas de minúsculas.
 - Identificadores ASCII formados por letras, dígitos y guion bajo; no pueden
+  comenzar con un dígito. Si una palabra contiene caracteres no ASCII, como
+  `diñosáurio`, se reporta completa como error y ninguna de sus partes genera
+  tokens.
+- Literales enteros, decimales y cadenas entre comillas simples. En una cadena,
+  `''` representa una comilla simple.
   comenzar con un dígito.
 - Literales enteros, decimales y números en notación científica, con signo
   opcional (`-42`, `+3.14`, `1e5`, `-1e-10`). Las cadenas se escriben entre
